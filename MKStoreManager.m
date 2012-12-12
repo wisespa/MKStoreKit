@@ -414,6 +414,7 @@ static MKStoreManager* _sharedStoreManager;
   
 #endif
 }
+
 - (void) buyFeatureWithProductId:(NSString*) featureId
                       onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
                      onCancelled:(void (^)(void)) cancelBlock
@@ -432,7 +433,7 @@ static MKStoreManager* _sharedStoreManager;
         [self showAlertWithTitle:NSLocalizedString(@"In-App Purchasing disabled", @"")
                          message:NSLocalizedString(@"Check your parental control settings and try again later", @"")];
 	}
-
+    
 }
 
 - (void) buyFeature:(NSString*) featureId
