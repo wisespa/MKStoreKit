@@ -37,8 +37,6 @@
 #import <StoreKit/StoreKit.h>
 #import "MKStoreKitConfigs.h"
 
-#define kReceiptStringKey @"MK_STOREKIT_RECEIPTS_STRING"
-
 #ifndef NDEBUG
 #define kReceiptValidationURL @"https://sandbox.itunes.apple.com/verifyReceipt"
 #else
@@ -57,6 +55,7 @@
 // this is a class method, since it doesn't require the store manager to be initialized prior to calling
 + (BOOL) isFeaturePurchased:(NSString*) featureId;
 
+@property (nonatomic) BOOL isProductsAvailable;
 @property (nonatomic, strong) NSMutableArray *purchasableObjects;
 @property (nonatomic, strong) NSMutableDictionary *subscriptionProducts;
 #ifdef __IPHONE_6_0
@@ -70,6 +69,12 @@
 
 // use this method to start a purchase
 - (void) buyFeature:(NSString*) featureId
+         onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
+        onCancelled:(void (^)(void)) cancelBlock;
+
+// use this method to start a purchase
+// Though it's deprecated, but some times apple took too long to respond to product fetch request
+- (void) buyFeatureWithProductId:(NSString*) featureId
          onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
         onCancelled:(void (^)(void)) cancelBlock;
 

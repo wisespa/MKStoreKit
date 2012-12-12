@@ -56,14 +56,12 @@
 @property (nonatomic, copy) void (^onRestoreFailed)(NSError* error);
 @property (nonatomic, copy) void (^onRestoreCompleted)();
 
-@property (nonatomic, assign, getter=isProductsAvailable) BOOL isProductsAvailable;
-
 @property (nonatomic, strong) SKProductsRequest *productsRequest;
 
-- (void) requestProductData;
-- (void) startVerifyingSubscriptionReceipts;
--(void) rememberPurchaseOfProduct:(NSString*) productIdentifier withReceipt:(NSData*) receiptData;
--(void) addToQueue:(NSString*) productId;
+- (void)requestProductData;
+- (void)startVerifyingSubscriptionReceipts;
+- (void)rememberPurchaseOfProduct:(NSString*) productIdentifier withReceipt:(NSData*) receiptData;
+- (void)addToQueue:(NSString*) productId;
 @end
 
 @implementation MKStoreManager
@@ -415,6 +413,26 @@ static MKStoreManager* _sharedStoreManager;
   [alert runModal];
   
 #endif
+}
+- (void) buyFeatureWithProductId:(NSString*) featureId
+                      onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
+                     onCancelled:(void (^)(void)) cancelBlock
+{
+    self.onTransactionCompleted = completionBlock;
+    self.onTransactionCancelled = cancelBlock;
+    if ([SKPaymentQueue canMakePayments])
+	{
+        // TODO check the id in local list
+        
+		SKPayment *payment = [SKPayment paymentWithProductIdentifier:featureId];
+		[[SKPaymentQueue defaultQueue] addPayment:payment];
+	}
+	else
+	{
+        [self showAlertWithTitle:NSLocalizedString(@"In-App Purchasing disabled", @"")
+                         message:NSLocalizedString(@"Check your parental control settings and try again later", @"")];
+	}
+
 }
 
 - (void) buyFeature:(NSString*) featureId
