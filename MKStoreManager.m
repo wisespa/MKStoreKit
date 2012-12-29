@@ -175,7 +175,7 @@ static MKStoreManager* _sharedStoreManager;
 		static dispatch_once_t oncePredicate;
 		dispatch_once(&oncePredicate, ^{
 			_sharedStoreManager = [[self alloc] init];
-      _sharedStoreManager.purchasableObjects = [NSMutableArray array];
+      _sharedStoreManager.purchasableObjects = [NSArray array];
 #ifdef __IPHONE_6_0
       _sharedStoreManager.hostedContents = [NSMutableArray array];
 #endif
@@ -277,7 +277,7 @@ static MKStoreManager* _sharedStoreManager;
 
 - (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response
 {
-	[self.purchasableObjects addObjectsFromArray:response.products];
+	self.purchasableObjects = response.products;
 	
 #ifndef NDEBUG
 	for(int i=0;i<[self.purchasableObjects count];i++)

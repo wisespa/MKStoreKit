@@ -56,7 +56,7 @@
 + (BOOL) isFeaturePurchased:(NSString*) featureId;
 
 @property (nonatomic) BOOL isProductsAvailable;
-@property (nonatomic, strong) NSMutableArray *purchasableObjects;
+@property (nonatomic, strong) NSArray *purchasableObjects;
 @property (nonatomic, strong) NSMutableDictionary *subscriptionProducts;
 #ifdef __IPHONE_6_0
 @property (strong, nonatomic) NSMutableArray *hostedContents;
