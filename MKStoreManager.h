@@ -90,6 +90,9 @@
 // for testing proposes you can use this method to remove all the saved keychain data (saved purchases, etc.)
 - (BOOL) removeAllKeychainData;
 
+// Requesting product data
+- (void)requestProductData;
+
 // You wont' need this normally. MKStoreKit automatically takes care of remembering receipts.
 // but in case you want the receipt data to be posted to your server, use this.
 +(id) receiptForKey:(NSString*) key;

@@ -58,7 +58,6 @@
 
 @property (nonatomic, strong) SKProductsRequest *productsRequest;
 
-- (void)requestProductData;
 - (void)startVerifyingSubscriptionReceipts;
 - (void)rememberPurchaseOfProduct:(NSString*) productIdentifier withReceipt:(NSData*) receiptData;
 - (void)addToQueue:(NSString*) productId;
@@ -292,8 +291,11 @@ static MKStoreManager* _sharedStoreManager;
 		NSLog(@"Problem in iTunes connect configuration for product: %@", invalidProduct);
 #endif
   
-	self.isProductsAvailable = YES;
-  [[NSNotificationCenter defaultCenter] postNotificationName:kProductFetchedNotification
+    if ([self.purchasableObjects count] > 0) {
+        self.isProductsAvailable = YES;
+    }
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:kProductFetchedNotification
                                                       object:[NSNumber numberWithBool:self.isProductsAvailable]];
 	self.productsRequest = nil;
 }
@@ -432,6 +434,10 @@ static MKStoreManager* _sharedStoreManager;
 	{
         [self showAlertWithTitle:NSLocalizedString(@"In-App Purchasing disabled", @"")
                          message:NSLocalizedString(@"Check your parental control settings and try again later", @"")];
+        
+        if (self.onTransactionCancelled) {
+            self.onTransactionCancelled();
+        }
 	}
     
 }
@@ -471,19 +477,28 @@ static MKStoreManager* _sharedStoreManager;
 {
   if ([SKPaymentQueue canMakePayments])
 	{
-    NSArray *allIds = [self.purchasableObjects valueForKey:@"productIdentifier"];
-    int index = [allIds indexOfObject:productId];
+        NSArray *allIds = [self.purchasableObjects valueForKey:@"productIdentifier"];
+        int index = [allIds indexOfObject:productId];
     
-    if(index == NSNotFound) return;
+        if(index == NSNotFound) {
+            if (self.onTransactionCancelled) {
+                self.onTransactionCancelled();
+            }
+            return;
+        };
     
-    SKProduct *thisProduct = [self.purchasableObjects objectAtIndex:index];
+        SKProduct *thisProduct = [self.purchasableObjects objectAtIndex:index];
 		SKPayment *payment = [SKPayment paymentWithProduct:thisProduct];
 		[[SKPaymentQueue defaultQueue] addPayment:payment];
 	}
 	else
 	{
-    [self showAlertWithTitle:NSLocalizedString(@"In-App Purchasing disabled", @"")
+        [self showAlertWithTitle:NSLocalizedString(@"In-App Purchasing disabled", @"")
                      message:NSLocalizedString(@"Check your parental control settings and try again later", @"")];
+        
+        if (self.onTransactionCancelled) {
+            self.onTransactionCancelled();
+        }
 	}
 }
 
