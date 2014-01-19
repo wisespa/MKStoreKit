@@ -604,17 +604,28 @@ static MKStoreManager* _sharedStoreManager;
   [hostedContents enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
     SKDownload *download = obj;
     
-    switch (download.downloadState) {
-      case SKDownloadStateFinished:
+      switch (download.downloadState) {
+          case SKDownloadStateFinished:
 #ifndef NDEBUG
-        NSLog(@"Download finished: %@", [download description]);
+              NSLog(@"Download finished: %@", [download description]);
 #endif
-        [self provideContent:download.transaction.payment.productIdentifier
-                  forReceipt:download.transaction.transactionReceipt
-               hostedContent:[NSArray arrayWithObject:download]];
-        
-        [[SKPaymentQueue defaultQueue] finishTransaction:download.transaction];
-        break;
+              NSData* receiptData = nil;
+              if (IS_IOS7_OR_GREATER) {
+                  NSURL* receiptUrl = [[NSBundle mainBundle] appStoreReceiptURL];
+                  if ([[NSFileManager defaultManager] fileExistsAtPath:[receiptUrl path]]) {
+                      receiptData = [NSData dataWithContentsOfURL:receiptUrl];
+                  }
+              } else {
+                  receiptData = download.transaction.transactionReceipt;
+              }
+              
+              [self provideContent:download.transaction.payment.productIdentifier
+                        forReceipt:receiptData
+                     hostedContent:[NSArray arrayWithObject:download]];
+              
+              [[SKPaymentQueue defaultQueue] finishTransaction:download.transaction];
+              
+              break;
     }
   }];
 }
