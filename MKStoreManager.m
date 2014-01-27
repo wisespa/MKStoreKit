@@ -454,35 +454,6 @@ static MKStoreManager* _sharedStoreManager;
 	}
 }
 
-- (BOOL) canConsumeProduct:(NSString*) productIdentifier
-{
-	int count = [[MKStoreManager numberForKey:productIdentifier] intValue];
-	
-	return (count > 0);
-	
-}
-
-- (BOOL) canConsumeProduct:(NSString*) productIdentifier quantity:(int) quantity
-{
-	int count = [[MKStoreManager numberForKey:productIdentifier] intValue];
-	return (count >= quantity);
-}
-
-- (BOOL) consumeProduct:(NSString*) productIdentifier quantity:(int) quantity
-{
-	int count = [[MKStoreManager numberForKey:productIdentifier] intValue];
-	if(count < quantity)
-	{
-		return NO;
-	}
-	else
-	{
-		count -= quantity;
-    [MKStoreManager setObject:[NSNumber numberWithInt:count] forKey:productIdentifier];
-		return YES;
-	}
-}
-
 - (void) startVerifyingSubscriptionReceipts
 {
   NSDictionary *subscriptions = [[MKStoreManager storeKitItems] objectForKey:@"Subscriptions"];
@@ -571,7 +542,7 @@ static MKStoreManager* _sharedStoreManager;
                   receiptData = download.transaction.transactionReceipt;
               }
               
-              [self provideContent:download.transaction.payment.productIdentifier
+              [self recordPayment:download.transaction.payment.productIdentifier
                         forReceipt:receiptData
                      hostedContent:[NSArray arrayWithObject:download]];
               
@@ -585,7 +556,7 @@ static MKStoreManager* _sharedStoreManager;
 
 #pragma mark In-App purchases callbacks
 // In most cases you don't have to touch these methods
--(void) provideContent: (NSString*) productIdentifier
+-(void) recordPayment: (NSString*) productIdentifier
             forReceipt:(NSData*) receiptData
          hostedContent:(NSArray*) hostedContent
 {
@@ -635,27 +606,10 @@ static MKStoreManager* _sharedStoreManager;
   }
 }
 
-
 -(void) rememberPurchaseOfProduct:(NSString*) productIdentifier withReceipt:(NSData*) receiptData
 {
-  NSDictionary *allConsumables = [[MKStoreManager storeKitItems] objectForKey:@"Consumables"];
-  if([[allConsumables allKeys] containsObject:productIdentifier])
-  {
-    NSDictionary *thisConsumableDict = [allConsumables objectForKey:productIdentifier];
-    int quantityPurchased = [[thisConsumableDict objectForKey:@"Count"] intValue];
-    NSString* productPurchased = [thisConsumableDict objectForKey:@"Name"];
-    
-    int oldCount = [[MKStoreManager numberForKey:productPurchased] intValue];
-    int newCount = oldCount + quantityPurchased;
-    
-    [MKStoreManager setObject:[NSNumber numberWithInt:newCount] forKey:productPurchased];
-  }
-  else
-  {
     [MKStoreManager setObject:[NSNumber numberWithBool:YES] forKey:productIdentifier];
-  }
-  
-  [MKStoreManager setObject:receiptData forKey:[NSString stringWithFormat:@"%@-receipt", productIdentifier]];
+    [MKStoreManager setObject:receiptData forKey:[NSString stringWithFormat:@"%@-receipt", productIdentifier]];
 }
 
 #pragma -
@@ -746,16 +700,31 @@ static MKStoreManager* _sharedStoreManager;
         receiptData = transaction.transactionReceipt;
     }
 
-  [self provideContent:transaction.payment.productIdentifier
+  [self recordPayment:transaction.payment.productIdentifier
             forReceipt:receiptData
          hostedContent:downloads];
 #elif TARGET_OS_MAC
-  [self provideContent:transaction.payment.productIdentifier
+  [self recordPayment:transaction.payment.productIdentifier
             forReceipt:nil
          hostedContent:nil];
 #endif
   
-  [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+    // Here we finished all local record and content provide, we need to check
+    // whether we have something to do remotely, transaction can only be marked as finished
+    // when remote operation is successfully
+    if (self.remoteContentProvider) {
+        self.remoteContentProvider(transaction, ^(BOOL success){
+            if (success) {
+                [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+            } else {
+#ifndef NDEBUG
+                NSLog(@"ERROR - IAP remote operation failed");
+#endif
+            }
+        });
+    } else {
+        [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+    }
 }
 
 - (void) restoreTransaction: (SKPaymentTransaction *)transaction
@@ -788,11 +757,11 @@ static MKStoreManager* _sharedStoreManager;
         receiptData = transaction.transactionReceipt;
     }
 
-  [self provideContent:transaction.originalTransaction.payment.productIdentifier
+  [self recordPayment:transaction.originalTransaction.payment.productIdentifier
             forReceipt:receiptData
          hostedContent:downloads];
 #elif TARGET_OS_MAC
-  [self provideContent: transaction.originalTransaction.payment.productIdentifier
+  [self recordPayment: transaction.originalTransaction.payment.productIdentifier
             forReceipt:nil
          hostedContent:nil];
 #endif
