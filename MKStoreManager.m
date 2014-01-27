@@ -37,7 +37,6 @@
 #import "MKStoreManager.h"
 #import "SFHFKeychainUtils.h"
 #import "MKSKSubscriptionProduct.h"
-#import "MKSKProduct.h"
 #import "NSData+MKBase64.h"
 #if ! __has_feature(objc_arc)
 #error MKStoreKit is ARC only. Either turn on ARC for the project or use -fobjc-arc flag
@@ -421,31 +420,9 @@ static MKStoreManager* _sharedStoreManager;
          onComplete:(void (^)(NSString*, NSData*, NSArray*)) completionBlock
         onCancelled:(void (^)(void)) cancelBlock
 {
-  self.onTransactionCompleted = completionBlock;
-  self.onTransactionCancelled = cancelBlock;
-  
-  [MKSKProduct verifyProductForReviewAccess:featureId
-                                 onComplete:^(NSNumber * isAllowed)
-   {
-     if([isAllowed boolValue])
-     {
-       [self showAlertWithTitle:NSLocalizedString(@"Review request approved", @"")
-                        message:NSLocalizedString(@"You can use this feature for reviewing the app.", @"")];
-       
-       if(self.onTransactionCompleted)
-         self.onTransactionCompleted(featureId, nil, nil);
-     }
-     else
-     {
-       [self addToQueue:featureId];
-     }
-     
-   }
-                                    onError:^(NSError* error)
-   {
-     NSLog(@"Review request cannot be checked now: %@", [error description]);
-     [self addToQueue:featureId];
-   }];
+    self.onTransactionCompleted = completionBlock;
+    self.onTransactionCancelled = cancelBlock;
+    [self addToQueue:featureId];
 }
 
 -(void) addToQueue:(NSString*) productId
@@ -652,37 +629,9 @@ static MKStoreManager* _sharedStoreManager;
       }
     }
     
-    if(OWN_SERVER && SERVER_PRODUCT_MODEL)
-    {
-      // ping server and get response before serializing the product
-      // this is a blocking call to post receipt data to your server
-      // it should normally take a couple of seconds on a good 3G connection
-      MKSKProduct *thisProduct = [[MKSKProduct alloc] initWithProductId:productIdentifier receiptData:receiptData];
-      
-      [thisProduct verifyReceiptOnComplete:^
-       {
-         [self rememberPurchaseOfProduct:productIdentifier withReceipt:receiptData];
-         if(self.onTransactionCompleted)
-           self.onTransactionCompleted(productIdentifier, receiptData, hostedContent);
-       }
-                                   onError:^(NSError* error)
-       {
-         if(self.onTransactionCancelled)
-         {
-           self.onTransactionCancelled(productIdentifier);
-         }
-         else
-         {
-           NSLog(@"The receipt could not be verified");
-         }
-       }];
-    }
-    else
-    {
-      [self rememberPurchaseOfProduct:productIdentifier withReceipt:receiptData];
-      if(self.onTransactionCompleted)
+    [self rememberPurchaseOfProduct:productIdentifier withReceipt:receiptData];
+    if(self.onTransactionCompleted)
         self.onTransactionCompleted(productIdentifier, receiptData, hostedContent);
-    }
   }
 }
 
