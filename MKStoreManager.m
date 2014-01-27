@@ -417,31 +417,6 @@ static MKStoreManager* _sharedStoreManager;
 #endif
 }
 
-- (void) buyFeatureWithProductId:(NSString*) featureId
-                      onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
-                     onCancelled:(void (^)(void)) cancelBlock
-{
-    self.onTransactionCompleted = completionBlock;
-    self.onTransactionCancelled = cancelBlock;
-    if ([SKPaymentQueue canMakePayments])
-	{
-        // TODO check the id in local list
-        
-		SKPayment *payment = [SKPayment paymentWithProductIdentifier:featureId];
-		[[SKPaymentQueue defaultQueue] addPayment:payment];
-	}
-	else
-	{
-        [self showAlertWithTitle:NSLocalizedString(@"In-App Purchasing disabled", @"")
-                         message:NSLocalizedString(@"Check your parental control settings and try again later", @"")];
-        
-        if (self.onTransactionCancelled) {
-            self.onTransactionCancelled();
-        }
-	}
-    
-}
-
 - (void) buyFeature:(NSString*) featureId
          onComplete:(void (^)(NSString*, NSData*, NSArray*)) completionBlock
         onCancelled:(void (^)(void)) cancelBlock
@@ -811,9 +786,19 @@ static MKStoreManager* _sharedStoreManager;
     return;
   }
 #endif
-  
+    
+    NSData* receiptData = nil;
+    if (IS_IOS7_OR_GREATER) {
+        NSURL* receiptUrl = [[NSBundle mainBundle] appStoreReceiptURL];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:[receiptUrl path]]) {
+            receiptData = [NSData dataWithContentsOfURL:receiptUrl];
+        }
+    } else {
+        receiptData = transaction.transactionReceipt;
+    }
+
   [self provideContent:transaction.payment.productIdentifier
-            forReceipt:transaction.transactionReceipt
+            forReceipt:receiptData
          hostedContent:downloads];
 #elif TARGET_OS_MAC
   [self provideContent:transaction.payment.productIdentifier
@@ -844,8 +829,18 @@ static MKStoreManager* _sharedStoreManager;
   }
 #endif
   
-  [self provideContent: transaction.originalTransaction.payment.productIdentifier
-            forReceipt:transaction.transactionReceipt
+    NSData* receiptData = nil;
+    if (IS_IOS7_OR_GREATER) {
+        NSURL* receiptUrl = [[NSBundle mainBundle] appStoreReceiptURL];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:[receiptUrl path]]) {
+            receiptData = [NSData dataWithContentsOfURL:receiptUrl];
+        }
+    } else {
+        receiptData = transaction.transactionReceipt;
+    }
+
+  [self provideContent:transaction.originalTransaction.payment.productIdentifier
+            forReceipt:receiptData
          hostedContent:downloads];
 #elif TARGET_OS_MAC
   [self provideContent: transaction.originalTransaction.payment.productIdentifier

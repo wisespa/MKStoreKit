@@ -72,12 +72,6 @@
          onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
         onCancelled:(void (^)(void)) cancelBlock;
 
-// use this method to start a purchase
-// Though it's deprecated, but some times apple took too long to respond to product fetch request
-- (void) buyFeatureWithProductId:(NSString*) featureId
-         onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
-        onCancelled:(void (^)(void)) cancelBlock;
-
 // use this method to restore a purchase
 - (void) restorePreviousTransactionsOnComplete:(void (^)(void)) completionBlock
                                        onError:(void (^)(NSError* error)) errorBlock;
