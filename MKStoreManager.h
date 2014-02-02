@@ -47,8 +47,8 @@
 #define kSubscriptionsPurchasedNotification @"MKStoreKitSubscriptionsPurchased"
 #define kSubscriptionsInvalidNotification @"MKStoreKitSubscriptionsInvalid"
 
-typedef void (^MKStoreRemoteProvideContentCallbackBlock)(BOOL success);
-typedef void (^MKStoreRemoteProvideContentBlock)(SKPaymentTransaction *transaction, MKStoreRemoteProvideContentCallbackBlock callback);
+typedef void (^MKStoreRemoteProvideContentFinishedBlock)(BOOL success);
+typedef void (^MKStoreRemoteProvideContentBlock)(SKPaymentTransaction *transaction, MKStoreRemoteProvideContentFinishedBlock callback);
 
 @interface MKStoreManager : NSObject<SKProductsRequestDelegate, SKPaymentTransactionObserver>
 
@@ -95,5 +95,4 @@ typedef void (^MKStoreRemoteProvideContentBlock)(SKPaymentTransaction *transacti
 +(id) receiptForKey:(NSString*) key;
 +(void) setObject:(id) object forKey:(NSString*) key;
 +(NSNumber*) numberForKey:(NSString*) key;
-
 @end

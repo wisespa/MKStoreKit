@@ -713,15 +713,20 @@ static MKStoreManager* _sharedStoreManager;
     // whether we have something to do remotely, transaction can only be marked as finished
     // when remote operation is successfully
     if (self.remoteContentProvider) {
-        self.remoteContentProvider(transaction, ^(BOOL success){
-            if (success) {
-                [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
-            } else {
+        //run remote content provider asynchronizedlly
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0)
+                       , ^{
+                           self.remoteContentProvider(transaction, ^(BOOL success){
+                               if (success) {
+                                   [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+                               } else {
 #ifndef NDEBUG
-                NSLog(@"ERROR - IAP remote operation failed");
+                                   NSLog(@"ERROR - IAP remote operation failed");
 #endif
-            }
-        });
+                               }
+                           });
+                           
+                       });
     } else {
         [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
     }
