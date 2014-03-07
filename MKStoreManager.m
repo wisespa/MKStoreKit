@@ -609,7 +609,8 @@ static MKStoreManager* _sharedStoreManager;
 -(void) rememberPurchaseOfProduct:(NSString*) productIdentifier withReceipt:(NSData*) receiptData
 {
     [MKStoreManager setObject:[NSNumber numberWithBool:YES] forKey:productIdentifier];
-    [MKStoreManager setObject:receiptData forKey:[NSString stringWithFormat:@"%@-receipt", productIdentifier]];
+    // Stop recording receipt data because this version MKStoreKit failed to store iOS 7 receipt
+    //[MKStoreManager setObject:receiptData forKey:[NSString stringWithFormat:@"%@-receipt", productIdentifier]];
 }
 
 #pragma -
