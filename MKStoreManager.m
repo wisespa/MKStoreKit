@@ -529,6 +529,7 @@ static MKStoreManager* _sharedStoreManager;
     
       switch (download.downloadState) {
           case SKDownloadStateFinished:
+          {
 #ifndef NDEBUG
               NSLog(@"Download finished: %@", [download description]);
 #endif
@@ -549,6 +550,7 @@ static MKStoreManager* _sharedStoreManager;
               [[SKPaymentQueue defaultQueue] finishTransaction:download.transaction];
               
               break;
+          }
     }
   }];
 }
