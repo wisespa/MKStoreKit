@@ -109,7 +109,11 @@ static MKStoreManager* _sharedStoreManager;
     NSString *objectString = nil;
     if([object isKindOfClass:[NSData class]])
     {
-      objectString = [[NSString alloc] initWithData:object encoding:NSUTF8StringEncoding];
+        if (IS_IOS7_OR_GREATER) {
+            objectString = [object base64EncodedStringWithOptions:kNilOptions];//only available in ios7, base64 string already
+        } else {
+            objectString = [[NSString alloc] initWithData:object encoding:NSUTF8StringEncoding];
+        }
     }
     if([object isKindOfClass:[NSNumber class]])
     {
@@ -174,13 +178,14 @@ static MKStoreManager* _sharedStoreManager;
 		static dispatch_once_t oncePredicate;
 		dispatch_once(&oncePredicate, ^{
 			_sharedStoreManager = [[self alloc] init];
-      _sharedStoreManager.purchasableObjects = [NSArray array];
+            _sharedStoreManager.purchasableObjects = [NSArray array];
 #ifdef __IPHONE_6_0
-      _sharedStoreManager.hostedContents = [NSMutableArray array];
+            _sharedStoreManager.hostedContents = [NSMutableArray array];
 #endif
-      [_sharedStoreManager requestProductData];
-      [[SKPaymentQueue defaultQueue] addTransactionObserver:_sharedStoreManager];
-      [_sharedStoreManager startVerifyingSubscriptionReceipts];
+            [[SKPaymentQueue defaultQueue] addTransactionObserver:_sharedStoreManager];
+
+            [_sharedStoreManager requestProductData];
+            [_sharedStoreManager startVerifyingSubscriptionReceipts];
     });
     
     if([self iCloudAvailable])
@@ -549,6 +554,10 @@ static MKStoreManager* _sharedStoreManager;
               
               [[SKPaymentQueue defaultQueue] finishTransaction:download.transaction];
               
+              if(self.onTransactionCompleted) {
+                  self.onTransactionCompleted(download.transaction.payment.productIdentifier, receiptData, [NSArray arrayWithObject:download]);
+              }
+
               break;
           }
     }
@@ -575,8 +584,6 @@ static MKStoreManager* _sharedStoreManager;
                                                            object:productIdentifier];
        
        [MKStoreManager setObject:receiptData forKey:productIdentifier];
-       if(self.onTransactionCompleted)
-         self.onTransactionCompleted(productIdentifier, receiptData, hostedContent);
      }
                                          onError:^(NSError* error)
      {
@@ -603,8 +610,6 @@ static MKStoreManager* _sharedStoreManager;
     }
     
     [self rememberPurchaseOfProduct:productIdentifier withReceipt:receiptData];
-    if(self.onTransactionCompleted)
-        self.onTransactionCompleted(productIdentifier, receiptData, hostedContent);
   }
 }
 
@@ -703,9 +708,14 @@ static MKStoreManager* _sharedStoreManager;
         receiptData = transaction.transactionReceipt;
     }
 
-  [self recordPayment:transaction.payment.productIdentifier
-            forReceipt:receiptData
-         hostedContent:downloads];
+    if(!receiptData){
+        if(self.onTransactionCancelled) {
+            self.onTransactionCancelled();
+        }
+        return;
+    }
+    
+    [self recordPayment:transaction.payment.productIdentifier forReceipt:receiptData hostedContent:downloads];
 #elif TARGET_OS_MAC
   [self recordPayment:transaction.payment.productIdentifier
             forReceipt:nil
@@ -722,7 +732,14 @@ static MKStoreManager* _sharedStoreManager;
                            self.remoteContentProvider(transaction, ^(BOOL success){
                                if (success) {
                                    [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+                                   if(self.onTransactionCompleted) {
+                                       self.onTransactionCompleted(transaction.originalTransaction.payment.productIdentifier, receiptData, downloads);
+                                   }
+
                                } else {
+                                   if(self.onTransactionCancelled) {
+                                       self.onTransactionCancelled();
+                                   }
 #ifndef NDEBUG
                                    NSLog(@"ERROR - IAP remote operation failed");
 #endif
@@ -732,6 +749,10 @@ static MKStoreManager* _sharedStoreManager;
                        });
     } else {
         [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+        if(self.onTransactionCompleted) {
+            self.onTransactionCompleted(transaction.originalTransaction.payment.productIdentifier, receiptData, downloads);
+        }
+
     }
 }
 
@@ -775,6 +796,10 @@ static MKStoreManager* _sharedStoreManager;
 #endif
 	
   [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+    
+    if(self.onTransactionCompleted) {
+        self.onTransactionCompleted(transaction.originalTransaction.payment.productIdentifier, receiptData, downloads);
+    }
 }
 
 #ifdef __IPHONE_6_0
