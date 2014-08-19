@@ -795,10 +795,22 @@ static MKStoreManager* _sharedStoreManager;
          hostedContent:nil];
 #endif
 	
-  [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
-    
-    if(self.onTransactionCompleted) {
-        self.onTransactionCompleted(transaction.originalTransaction.payment.productIdentifier, receiptData, downloads);
+    // Here we finished all local record and content provide, we need to check
+    // whether we have something to do remotely, transaction can only be marked as finished
+    // when remote operation is successfully
+    if (self.remoteContentProvider) {
+        //run remote content provider asynchronizedlly
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0)
+                       , ^{
+                           self.remoteContentProvider(transaction, ^(BOOL success){
+                               if (success) {
+                                   [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+                               }
+                           });
+                           
+                       });
+    } else {
+        [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
     }
 }
 
