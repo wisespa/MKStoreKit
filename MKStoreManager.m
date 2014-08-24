@@ -185,7 +185,6 @@ static MKStoreManager* _sharedStoreManager;
             [[SKPaymentQueue defaultQueue] addTransactionObserver:_sharedStoreManager];
 
             [_sharedStoreManager requestProductData];
-            [_sharedStoreManager startVerifyingSubscriptionReceipts];
     });
     
     if([self iCloudAvailable])
@@ -571,46 +570,13 @@ static MKStoreManager* _sharedStoreManager;
             forReceipt:(NSData*) receiptData
          hostedContent:(NSArray*) hostedContent
 {
-  MKSKSubscriptionProduct *subscriptionProduct = [self.subscriptionProducts objectForKey:productIdentifier];
-  if(subscriptionProduct)
-  {
-    // MAC In App Purchases can never be a subscription product (at least as on Dec 2011)
-    // so this can be safely ignored.
-    
-    subscriptionProduct.receipt = receiptData;
-    [subscriptionProduct verifyReceiptOnComplete:^(NSNumber* isActive)
-     {
-       [[NSNotificationCenter defaultCenter] postNotificationName:kSubscriptionsPurchasedNotification
-                                                           object:productIdentifier];
-       
-       [MKStoreManager setObject:receiptData forKey:productIdentifier];
-     }
-                                         onError:^(NSError* error)
-     {
-       NSLog(@"%@", [error description]);
-     }];
-  }
-  else
-  {
     if(!receiptData) {
-      
-      // could be a mac in app receipt.
-      // read from receipts and verify here
-      receiptData = [self receiptFromBundle];
-      if(!receiptData) {
-        if(self.onTransactionCancelled)
-        {
-          self.onTransactionCancelled(productIdentifier);
+        if(self.onTransactionCancelled) {
+            self.onTransactionCancelled(productIdentifier);
         }
-        else
-        {
-          NSLog(@"Receipt invalid");
-        }
-      }
+    } else {
+        [self rememberPurchaseOfProduct:productIdentifier withReceipt:receiptData];
     }
-    
-    [self rememberPurchaseOfProduct:productIdentifier withReceipt:receiptData];
-  }
 }
 
 -(void) rememberPurchaseOfProduct:(NSString*) productIdentifier withReceipt:(NSData*) receiptData
