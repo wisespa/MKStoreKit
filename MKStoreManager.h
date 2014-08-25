@@ -47,7 +47,7 @@
 #define kSubscriptionsPurchasedNotification @"MKStoreKitSubscriptionsPurchased"
 #define kSubscriptionsInvalidNotification @"MKStoreKitSubscriptionsInvalid"
 
-typedef void (^MKStoreRemoteProvideContentFinishedBlock)(BOOL success);
+typedef void (^MKStoreRemoteProvideContentFinishedBlock)(BOOL success, NSString* errorMsg);
 typedef void (^MKStoreRemoteProvideContentBlock)(SKPaymentTransaction *transaction, MKStoreRemoteProvideContentFinishedBlock callback);
 
 @interface MKStoreManager : NSObject<SKProductsRequestDelegate, SKPaymentTransactionObserver>
@@ -75,7 +75,7 @@ typedef void (^MKStoreRemoteProvideContentBlock)(SKPaymentTransaction *transacti
 // use this method to start a purchase
 - (void) buyFeature:(NSString*) featureId
          onComplete:(void (^)(NSString* purchasedFeature, NSData*purchasedReceipt, NSArray* availableDownloads)) completionBlock
-        onCancelled:(void (^)(void)) cancelBlock;
+        onCancelled:(void (^)(NSString* errorMsg)) cancelBlock;
 
 // use this method to restore a purchase
 - (void) restorePreviousTransactionsOnComplete:(void (^)(void)) completionBlock

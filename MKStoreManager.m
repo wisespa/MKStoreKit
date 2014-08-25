@@ -49,7 +49,7 @@
 
 @interface MKStoreManager () //private methods and properties
 
-@property (nonatomic, copy) void (^onTransactionCancelled)();
+@property (nonatomic, copy) void (^onTransactionCancelled)(NSString* errorMsg);
 @property (nonatomic, copy) void (^onTransactionCompleted)(NSString *productId, NSData* receiptData, NSArray* downloads);
 
 @property (nonatomic, copy) void (^onRestoreFailed)(NSError* error);
@@ -422,7 +422,7 @@ static MKStoreManager* _sharedStoreManager;
 
 - (void) buyFeature:(NSString*) featureId
          onComplete:(void (^)(NSString*, NSData*, NSArray*)) completionBlock
-        onCancelled:(void (^)(void)) cancelBlock
+        onCancelled:(void (^)(NSString* errorMsg)) cancelBlock
 {
     self.onTransactionCompleted = completionBlock;
     self.onTransactionCancelled = cancelBlock;
@@ -438,7 +438,7 @@ static MKStoreManager* _sharedStoreManager;
     
         if(index == NSNotFound) {
             if (self.onTransactionCancelled) {
-                self.onTransactionCancelled();
+                self.onTransactionCancelled(@"Product not found");
             }
             return;
         };
@@ -449,11 +449,8 @@ static MKStoreManager* _sharedStoreManager;
 	}
 	else
 	{
-        [self showAlertWithTitle:NSLocalizedString(@"In-App Purchasing disabled", @"")
-                     message:NSLocalizedString(@"Check your parental control settings and try again later", @"")];
-        
         if (self.onTransactionCancelled) {
-            self.onTransactionCancelled();
+            self.onTransactionCancelled(@"In-App Purchasing disabled");
         }
 	}
 }
@@ -639,7 +636,7 @@ static MKStoreManager* _sharedStoreManager;
   [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
   
   if(self.onTransactionCancelled)
-    self.onTransactionCancelled();
+    self.onTransactionCancelled(@"Transaction failed");
 }
 
 - (void) completeTransaction: (SKPaymentTransaction *)transaction
@@ -676,7 +673,7 @@ static MKStoreManager* _sharedStoreManager;
 
     if(!receiptData){
         if(self.onTransactionCancelled) {
-            self.onTransactionCancelled();
+            self.onTransactionCancelled(@"Receipt data is empty");
         }
         return;
     }
@@ -695,7 +692,7 @@ static MKStoreManager* _sharedStoreManager;
         //run remote content provider asynchronizedlly
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0)
                        , ^{
-                           self.remoteContentProvider(transaction, ^(BOOL success){
+                           self.remoteContentProvider(transaction, ^(BOOL success, NSString* errorMsg){
                                if (success) {
                                    [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
                                    if(self.onTransactionCompleted) {
@@ -704,7 +701,7 @@ static MKStoreManager* _sharedStoreManager;
 
                                } else {
                                    if(self.onTransactionCancelled) {
-                                       self.onTransactionCancelled();
+                                       self.onTransactionCancelled(errorMsg);
                                    }
 #ifndef NDEBUG
                                    NSLog(@"ERROR - IAP remote operation failed");
@@ -768,7 +765,7 @@ static MKStoreManager* _sharedStoreManager;
         //run remote content provider asynchronizedlly
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0)
                        , ^{
-                           self.remoteContentProvider(transaction, ^(BOOL success){
+                           self.remoteContentProvider(transaction, ^(BOOL success, NSString* errorMsg){
                                if (success) {
                                    [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
                                }
